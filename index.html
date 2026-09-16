@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="color-scheme" content="dark"/>
+<meta name="theme-color" content="#101214"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Cringe Racing"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="icon/apple-touch-icon.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icon/icon-192.png"/>
+<title>Cringe racing</title>
+<style>
+:root{--bg:#101214;--panel:#17191d;--line:#2a2d33;--txt:#e8e9eb;--mut:#8b8f98;--acc:#e03b3b;
+--mono:'Consolas','Menlo','Courier New',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;-webkit-user-select:none;user-select:none}
+html{touch-action:manipulation}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+button{font:inherit;background:var(--acc);color:#fff;border:none;padding:13px 34px;font-size:16px;
+font-weight:700;cursor:pointer;letter-spacing:.04em;transition:filter .15s}
+button:hover{filter:brightness(1.15)}
+button:disabled{background:var(--line);color:var(--mut);cursor:default;filter:none}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt);padding:10px 18px;font-size:14px}
+#menu{position:fixed;inset:0;overflow:auto;display:flex;flex-direction:column;align-items:center;
+justify-content:center;gap:22px;padding:28px 16px}
+h1{font-size:clamp(32px,6vw,52px);letter-spacing:.14em;font-weight:800}
+h1 span{color:var(--acc)}
+.tag{color:var(--mut);font-size:14px;margin-top:-14px;letter-spacing:.06em}
+#cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.card{background:var(--panel);border:1px solid var(--line);padding:14px 14px 16px;width:236px;cursor:pointer;
+text-align:center;transition:border-color .15s,transform .15s}
+.card:hover{transform:translateY(-3px)}
+.card.sel{border-color:var(--acc)}
+.card canvas{display:block;margin:0 auto 10px}
+.cname{font-weight:700;font-size:17px}
+.csub{color:var(--acc);font-size:11px;letter-spacing:.1em;margin:2px 0 6px;text-transform:uppercase}
+.cblurb{color:var(--mut);font-size:12px;min-height:30px;margin-bottom:10px}
+.stat{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--mut);margin-top:5px}
+.stat .lbl{width:70px;text-align:left;letter-spacing:.08em}
+.stat .bar{flex:1;height:4px;background:var(--line)}
+.stat .bar i{display:block;height:100%;background:var(--acc)}
+#board{width:min(440px,92vw);text-align:left}
+.btitle{color:var(--mut);font-size:11px;letter-spacing:.14em;margin-bottom:8px}
+.brow{display:grid;grid-template-columns:26px 1fr auto;gap:10px;font-size:14px;padding:5px 8px;
+font-variant-numeric:tabular-nums;border-bottom:1px solid var(--line)}
+.brow:first-of-type{color:#ffd76a}
+.brow i{font-style:normal;font-family:var(--mono)}
+.brow .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bempty{color:var(--mut);font-size:13px;padding:6px 8px}
+.hint{color:var(--mut);font-size:12px;letter-spacing:.05em}
+#game{position:fixed;inset:0;width:100%;height:100%;display:none}
+#hud{position:fixed;inset:0;display:none;pointer-events:none;font-variant-numeric:tabular-nums}
+#hudTime{position:absolute;top:16px;left:22px;font-size:36px;font-family:var(--mono);font-weight:700}
+#hudStats{position:absolute;top:62px;left:22px;font-size:12px;color:var(--mut);font-family:var(--mono);letter-spacing:.04em;line-height:1.9}
+#hudStats b{color:var(--txt);font-weight:400}
+#hudLap{position:absolute;top:16px;left:50%;transform:translateX(-50%);font-size:15px;color:var(--mut);letter-spacing:.2em}
+#hudSpeed{position:absolute;top:16px;right:22px;font-size:26px;font-family:var(--mono);font-weight:700;text-align:right}
+#hudSpeed small{display:block;font-size:10px;color:var(--mut);letter-spacing:.15em;font-weight:400}
+#wrongway{position:absolute;top:22%;left:50%;transform:translateX(-50%);color:var(--acc);font-size:32px;
+font-weight:800;letter-spacing:.3em;display:none}
+#count{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);font-size:110px;font-weight:800;
+color:var(--txt);text-shadow:0 0 40px rgba(224,59,59,.4)}
+#panel{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,11,13,.72);z-index:6}
+.pbox{background:var(--panel);border:1px solid var(--line);padding:28px 36px;width:min(460px,92vw);text-align:center}
+#pTitle{font-size:12px;letter-spacing:.3em;color:var(--mut)}
+.plabel{font-size:11px;letter-spacing:.2em;color:var(--mut);margin-top:10px}
+#pTime{font-family:var(--mono);font-size:42px;font-weight:700;margin:4px 0}
+#pSub{font-size:12px;color:var(--mut);min-height:34px;line-height:1.5;margin-bottom:10px}
+#pSub.rec{color:#ffd76a;font-weight:700}
+#pRow{display:flex;gap:6px;justify-content:center;align-items:center}
+#pName{font:inherit;background:#0d0f11;border:1px solid var(--line);color:var(--txt);padding:9px 12px;width:170px;
+letter-spacing:.06em;font-size:13px}
+#pName:focus{outline:none;border-color:var(--acc)}
+#pRow button{padding:9px 16px;font-size:13px}
+#pLaps{margin-top:14px;font-size:12px;color:var(--mut);letter-spacing:.1em}
+#toast{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--acc);
+padding:10px 22px;font-size:13px;letter-spacing:.1em;display:none}
+/* ---------- мобильная адаптация / тач-управление ---------- */
+#game{touch-action:none}
+.tbtn{position:fixed;z-index:5;display:flex;align-items:center;justify-content:center;
+background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);
+color:rgba(255,255,255,.6);pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;
+-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;cursor:pointer;
+-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+transition:background .08s,border-color .08s,color .08s}
+.tbtn.on{background:rgba(224,59,59,.24);border-color:rgba(224,59,59,.55);color:#fff}
+#btnL,#btnR{width:124px;height:124px;border-radius:32px;bottom:20px}
+#btnL{left:20px}
+#btnR{right:20px}
+#btnEsc{padding:16px 30px;border-radius:30px;font-size:11px;font-weight:700;letter-spacing:.22em;
+bottom:20px;left:50%;transform:translateX(-50%)}
+#btnEsc.on{transform:translateX(-50%) scale(.95)}
+@supports (width: env(safe-area-inset-bottom)){
+#btnL,#btnR{bottom:calc(20px + env(safe-area-inset-bottom))}
+#btnL{left:calc(20px + env(safe-area-inset-left))}
+#btnR{right:calc(20px + env(safe-area-inset-right))}
+#btnEsc{bottom:calc(20px + env(safe-area-inset-bottom))}
+#hudTime{left:calc(22px + env(safe-area-inset-left))}
+#hudStats{left:calc(22px + env(safe-area-inset-left))}
+#hudSpeed{right:calc(22px + env(safe-area-inset-right))}
+}
+/* экран «поверните телефон» в портретном режиме */
+#rotHint{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;
+justify-content:center;gap:16px;background:#101214;color:var(--txt);text-align:center}
+#rotHint svg{animation:rotSpin 2.4s ease-in-out infinite}
+@keyframes rotSpin{0%,25%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
+#rotHint .rt{font-size:20px;font-weight:800;letter-spacing:.18em}
+#rotHint .rs{font-size:12px;color:var(--mut);letter-spacing:.06em}
+@media (orientation:portrait) and (pointer:coarse){
+#rotHint{display:flex}
+}
+/* меню под узкий ландшафт телефона: структура как на десктопе, компактные размеры */
+@media (pointer:coarse){
+#menu{gap:7px;padding:10px 20px}
+#menu h1{font-size:24px;letter-spacing:.1em}
+#menu .tag{font-size:10px;margin-top:-4px}
+#cards{gap:12px;margin-top:0}
+.card{width:196px;padding:8px 10px 9px}
+.card canvas{width:150px;height:75px;margin:0 auto 5px}
+.cname{font-size:14px}
+.csub{font-size:9px;margin:1px 0 4px}
+.cblurb{display:none}
+.stat{font-size:9px;margin-top:2px}
+.stat .lbl{width:54px}
+#startBtn{padding:10px 28px;font-size:14px}
+#board{width:280px}
+#board .btitle{font-size:10px;margin-bottom:4px}
+#board .brow{font-size:11px;padding:2px 6px}
+#board .brow:nth-of-type(n+4){display:none}
+#menu .hint{font-size:10px}
+#count{font-size:78px}
+}
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>CRINGE <span>RACING</span></h1>
+  <p class="tag">Аркадный Time Attack</p>
+  <div id="cards"></div>
+  <button id="startBtn" disabled>Привыкнуть к аппарату</button>
+  <div id="board"></div>
+  <p class="hint">Руль — A/D или кнопки ‹ › · Тормоз — S или обе кнопки · Меню — ESC</p>
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div id="hudTime">0:00.00</div>
+  <div id="hudStats"></div>
+  <div id="hudLap">КРУГ 0</div>
+  <div id="hudSpeed">0<small>КМ/Ч</small></div>
+  <div id="wrongway">РАЗВОРОТ</div>
+  <div id="count"></div>
+  <div id="btnL" class="tbtn" aria-label="Поворот налево">
+    <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 4.5 7 12 14.5 19.5"/></svg>
+  </div>
+  <div id="btnEsc" class="tbtn">МЕНЮ</div>
+  <div id="btnR" class="tbtn" aria-label="Поворот направо">
+    <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9.5 4.5 17 12 9.5 19.5"/></svg>
+  </div>
+</div>
+
+<div id="panel">
+  <div class="pbox">
+    <div id="pTitle">СЕССИЯ ЗАВЕРШЕНА</div>
+    <div class="plabel">ЛУЧШЕЕ ВРЕМЯ СЕССИИ</div>
+    <div id="pTime">0:00.00</div>
+    <div id="pSub"></div>
+    <div id="pRow">
+      <input id="pName" maxlength="14" placeholder="Твой никнейм"/>
+      <button id="pSave">Сохранить</button>
+      <button id="pSkip" class="ghost">Пропустить</button>
+    </div>
+    <div id="pLaps"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="rotHint">
+  <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><line x1="10.5" y1="5.5" x2="13.5" y2="5.5"/></svg>
+  <div class="rt">ПОВЕРНИТЕ ТЕЛЕФОН</div>
+  <div class="rs">Играется в ландшафтном режиме</div>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+
+/* ---------- сохранение ---------- */
+const SAVE_KEY = 'cringe_racing_v1';
+function loadSave(){
+  try{ const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+       if(s && s.leaders) return s;
+  }catch(e){}
+  return { nickname:'', leaders:{ f1:[], civic:[], bus:[] } };
+}
+let save = loadSave();
+function persist(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+
+/* ---------- автомобили ---------- */
+const CARDEFS = [
+  { id:'f1', name:'Формула', sub:'класс S · болид',
+    top:520, accel:340, turn:3.5, len:28, wid:14, color:'#d92b2b', maxKmh:360,
+    blurb:'Быстрый там, где положено, и нигде больше.',
+    stats:[['СКОРОСТЬ',1.0],['РАЗГОН',.85],['РУЛЁЖКА',.95]] },
+  { id:'civic', name:'Скромняга', sub:'класс C · городской',
+    top:430, accel:260, turn:2.9, len:26, wid:12, color:'#e9e9e9', maxKmh:220,
+    blurb:'Едет тише. Бывает дальше.',
+    stats:[['СКОРОСТЬ',.72],['РАЗГОН',.66],['РУЛЁЖКА',.72]] },
+  { id:'bus', name:'Палыч', sub:'класс D · пассажирский',
+    top:330, accel:170, turn:2.1, len:46, wid:16, color:'#f2a900', maxKmh:80,
+    blurb:'Пассажиров нет, ответственность осталась.',
+    stats:[['СКОРОСТЬ',.55],['РАЗГОН',.45],['РУЛЁЖКА',.45]] },
+];
+
+/* ---------- трасса ---------- */
+const TRACK_W = 96;
+const CTRL = [
+  [260,260],[760,140],[1300,160],[1640,360],[1560,700],[1700,980],
+  [1420,1160],[980,1060],[700,1180],[380,1120],[180,820],[320,520]
+];
+const CENTER = [];
+(function(){
+  const n = CTRL.length, SAMP = 16;
+  function cr(p0,p1,p2,p3,t){
+    const t2=t*t, t3=t2*t;
+    return [
+      .5*((2*p1[0])+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),
+      .5*((2*p1[1])+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)
+    ];
+  }
+  for(let i=0;i<n;i++){
+    const p0=CTRL[(i-1+n)%n], p1=CTRL[i], p2=CTRL[(i+1)%n], p3=CTRL[(i+2)%n];
+    for(let j=0;j<SAMP;j++) CENTER.push(cr(p0,p1,p2,p3,j/SAMP));
+  }
+})();
+const N = CENTER.length;
+const TANGENT = CENTER.map((p,i)=>{
+  const a = CENTER[(i-1+N)%N], b = CENTER[(i+1)%N];
+  const dx=b[0]-a[0], dy=b[1]-a[1], l=Math.hypot(dx,dy)||1;
+  return [dx/l, dy/l];
+});
+
+function nearestIdx(x,y,hint){
+  let best=hint, bd=Infinity;
+  for(let k=-40;k<=40;k++){
+    const i=(hint+k+N)%N;
+    const dx=x-CENTER[i][0], dy=y-CENTER[i][1];
+    const d=dx*dx+dy*dy;
+    if(d<bd){bd=d;best=i;}
+  }
+  return { i:best, d:Math.sqrt(bd) };
+}
+
+/* ---------- отрисовка машин ---------- */
+function rr(g,x,y,w,h,r){
+  r=Math.min(r,w/2,h/2);
+  g.beginPath();
+  g.moveTo(x+r,y);
+  g.arcTo(x+w,y,x+w,y+h,r);
+  g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r);
+  g.arcTo(x,y,x+w,y,r);
+  g.closePath();
+}
+
+function paintCar(g,def){
+  const L=def.len, W=def.wid, hw=W/2;
+  g.fillStyle='rgba(0,0,0,.3)';
+  rr(g,-L/2+2,-hw+3,L,W,3); g.fill();
+  g.fillStyle='#141414';
+  if(def.id==='f1'){
+    g.fillRect(7,-hw-3,6,4); g.fillRect(7,hw-1,6,4);
+    g.fillRect(-12,-hw-4,7,4); g.fillRect(-12,hw,7,4);
+    g.fillStyle=def.color;
+    rr(g,-12,-(hw-1),20,W-2,3); g.fill();
+    g.beginPath(); g.moveTo(8,-hw+3); g.lineTo(15,0); g.lineTo(8,hw-3); g.closePath(); g.fill();
+    g.fillStyle='#8a1414';
+    g.fillRect(12,-hw-1,3,W+2);
+    g.fillRect(-15,-hw-2,3,W+4);
+    g.fillStyle='#222'; g.beginPath(); g.arc(-1,0,3.6,0,7); g.fill();
+    g.fillStyle='#ddd'; g.beginPath(); g.arc(-1,0,2,0,7); g.fill();
+  } else if(def.id==='civic'){
+    g.fillRect(6,-hw-1,7,4); g.fillRect(6,hw-3,7,4);
+    g.fillRect(-12,-hw-1,7,4); g.fillRect(-12,hw-3,7,4);
+    g.fillStyle=def.color; rr(g,-13,-hw+1,26,W-2,4); g.fill();
+    g.fillStyle='#3a3f46'; rr(g,-6,-hw+2.5,10,W-5,2); g.fill();
+    g.fillStyle='#565d66'; g.fillRect(4,-hw+2.5,3,W-5);
+    g.fillStyle='#f7d15c'; g.fillRect(12.4,-hw+2,1.2,3); g.fillRect(12.4,hw-5,1.2,3);
+  } else {
+    g.fillRect(9,-hw-1,8,4); g.fillRect(9,hw-3,8,4);
+    g.fillRect(-16,-hw-1,8,4); g.fillRect(-16,hw-3,8,4);
+    g.fillStyle=def.color; rr(g,-L/2,-hw,L,W,3); g.fill();
+    g.fillStyle='#2f343b';
+    g.fillRect(-8,-3,6,6); g.fillRect(2,-3,6,6);
+    g.fillRect(19,-hw+2,2.5,W-4);
+  }
+}
+
+/* ---------- состояние игры ---------- */
+const state = {
+  def:null, x:0, y:0, head:0, speed:0,
+  lastIdx:0, progress:0, rate:0,
+  laps:0, prevLap:0, sessionBest:0, phase:'idle', cd0:0, lapStart:0
+};
+let running=false;
+const cam={x:0,y:0};
+let selected=-1;
+
+const cv=$('#game'), ctx=cv.getContext('2d');
+let zoom=1, dpr=1;
+const IS_TOUCH=matchMedia('(pointer:coarse)').matches;
+
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1, 3);
+  const w=cv.clientWidth||innerWidth, h=cv.clientHeight||innerHeight;
+  cv.width=Math.max(1, Math.round(w*dpr));
+  cv.height=Math.max(1, Math.round(h*dpr));
+  zoom=Math.max(w/1500, h/1000)*(IS_TOUCH?1.3:1);
+}
+addEventListener('resize',resize);
+addEventListener('orientationchange',resize);
+resize();
+
+function fmt(s){
+  if(!isFinite(s)) return '--:--.---';
+  const m=Math.floor(s/60), r=s-m*60;
+  return m+':'+(r<10?'0':'')+r.toFixed(3);
+}
+
+/* ---------- ввод ---------- */
+const keys={};
+function panelOpen(){ return $('#panel').style.display==='flex'; }
+addEventListener('keydown',e=>{
+  const c=e.code;
+  keys[c]=true;
+  if(c.startsWith('Arrow')||c==='Space') e.preventDefault();
+  if(c==='Escape' && running){
+    if(panelOpen()) hidePanel();
+    else toMenu();
+  }
+  if(c==='Enter' && panelOpen() && $('#pRow').style.display!=='none') $('#pSave').click();
+});
+addEventListener('keyup',e=>{ keys[e.code]=false; });
+addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
+
+/* защита от двойного-тап зума и выделения текста (iOS) */
+document.addEventListener('dblclick', e=>e.preventDefault());
+document.addEventListener('selectstart', e=>e.preventDefault());
+document.addEventListener('contextmenu', e=>e.preventDefault());
+let lastTapT=0;
+document.addEventListener('touchstart', e=>{
+  const t=Date.now();
+  if(t-lastTapT<300) e.preventDefault();
+  lastTapT=t;
+},{passive:false});
+/* тач-кнопки: левый/правый (обе разом = тормоз), ESC-кнопка */
+let touchL=false, touchR=false;
+function holdBtn(id, apply){
+  const el=document.getElementById(id);
+  let pid=null;
+  const set=v=>{ el.classList.toggle('on',v); apply(v); };
+  el.addEventListener('pointerdown',e=>{ e.preventDefault(); pid=e.pointerId; set(true); });
+  addEventListener('pointerup',e=>{ if(e.pointerId===pid){ pid=null; set(false); } });
+  addEventListener('pointercancel',e=>{ if(e.pointerId===pid){ pid=null; set(false); } });
+  addEventListener('blur',()=>{ if(pid!==null){ pid=null; set(false); } });
+}
+holdBtn('btnL',v=>touchL=v);
+holdBtn('btnR',v=>touchR=v);
+(function(){
+  const el=document.getElementById('btnEsc');
+  let pid=null;
+  el.addEventListener('pointerdown',e=>{ e.preventDefault(); pid=e.pointerId; el.classList.add('on'); });
+  const clear=go=>{ if(pid!==null){ pid=null; el.classList.remove('on'); if(go) toMenu(); } };
+  addEventListener('pointerup',e=>{ if(e.pointerId===pid) clear(true); });
+  addEventListener('pointercancel',e=>{ if(e.pointerId===pid) clear(false); });
+  addEventListener('blur',()=>clear(false));
+})();
+
+/* ---------- меню ---------- */
+const cardsEl=$('#cards'), boardEl=$('#board'), startBtn=$('#startBtn');
+
+function buildMenu(){
+  CARDEFS.forEach((def,i)=>{
+    const c=document.createElement('div');
+    c.className='card';
+    c.innerHTML =
+      '<canvas width="208" height="104"></canvas>'+
+      '<div class="cname">'+def.name+'</div>'+
+      '<div class="csub">'+def.sub+'</div>'+
+      '<div class="cblurb">'+def.blurb+'</div>'+
+      def.stats.map(s=>'<div class="stat"><span class="lbl">'+s[0]+'</span><span class="bar"><i style="width:'+(s[1]*100)+'%"></i></span></div>').join('');
+    c.addEventListener('click',()=>{
+      selected=i;
+      document.querySelectorAll('.card').forEach((el,j)=>el.classList.toggle('sel',j===i));
+      startBtn.disabled=false;
+      renderBoard();
+    });
+    cardsEl.appendChild(c);
+    drawPreview(c.querySelector('canvas'),def);
+  });
+}
+
+function drawPreview(cvs,def){
+  const d=Math.min(window.devicePixelRatio||1, 3);
+  const w=cvs.clientWidth||208, h=cvs.clientHeight||104;
+  cvs.width=Math.round(w*d); cvs.height=Math.round(h*d);
+  cvs.style.width=w+'px'; cvs.style.height=h+'px';
+  const g=cvs.getContext('2d');
+  g.setTransform(1,0,0,1,0,0);
+  g.clearRect(0,0,cvs.width,cvs.height);
+  g.save();
+  g.translate(cvs.width/2, cvs.height/2);
+  g.rotate(-0.18);
+  const s=Math.min(5.2, (cvs.width*0.84)/def.len);
+  g.scale(s,s);
+  paintCar(g,def);
+  g.restore();
+}
+
+function renderBoard(){
+  if(selected<0){ boardEl.innerHTML=''; return; }
+  const def=CARDEFS[selected];
+  const L=save.leaders[def.id]||[];
+  let h='<div class="btitle">ТОП-5 · '+def.sub.toUpperCase()+'</div>';
+  if(!L.length) h+='<div class="bempty">Пока пусто. Стань первым.</div>';
+  L.forEach((e,i)=>{
+    h+='<div class="brow"><span>'+(i+1)+'</span><span class="who">'+e.n+'</span><i>'+fmt(e.t)+'</i></div>';
+  });
+  boardEl.innerHTML=h;
+}
+startBtn.addEventListener('click',startGame);
+
+/* ---------- игровой процесс ---------- */
+function startGame(){
+  state.def=CARDEFS[selected];
+  state.x=CENTER[0][0]; state.y=CENTER[0][1];
+  state.head=Math.atan2(TANGENT[0][1],TANGENT[0][0]);
+  state.speed=0; state.lastIdx=0; state.progress=0; state.rate=0;
+  state.laps=0; state.prevLap=0; state.sessionBest=0;
+  cam.x=state.x; cam.y=state.y;
+  running=true;
+  hidePanel();
+  $('#menu').style.display='none';
+  cv.style.display='block';
+  $('#hud').style.display='block';
+  resize();
+  try{ const lk=screen.orientation&&screen.orientation.lock;
+    if(IS_TOUCH&&lk) lk.call(screen.orientation,'landscape').catch(()=>{});
+  }catch(e){}
+  state.phase='countdown';
+  state.cd0=performance.now();
+}
+
+function toMenu(){
+  running=false;
+  cv.style.display='none';
+  $('#hud').style.display='none';
+  if(state.laps>0) showSessionPanel();
+  $('#menu').style.display='flex';
+  renderBoard();
+}
+
+function physics(dt,t){
+  const def=state.def;
+  const left=keys['KeyA']||keys['ArrowLeft']||touchL;
+  const right=keys['KeyD']||keys['ArrowRight']||touchR;
+  const down=!!(keys['KeyS']||keys['ArrowDown']||(left&&right));
+  const near=nearestIdx(state.x,state.y,state.lastIdx);
+  const off=near.d > TRACK_W/2 + 4;
+
+  let sp=state.speed;
+  sp += def.accel*dt;
+  if(down) sp -= def.accel*1.8*dt;
+  sp -= sp*.55*dt;
+  if(off) sp -= sp*3*dt;
+  const top = off ? 130 : def.top;
+  if(sp>top) sp -= (sp-top)*4*dt;
+  sp=Math.max(sp, 0);
+
+  const steer=(right?1:0)-(left?1:0);
+  const sf=Math.min(1, sp/90);
+  state.head += steer*def.turn*sf*dt;
+
+  state.x += Math.cos(state.head)*sp*dt;
+  state.y += Math.sin(state.head)*sp*dt;
+  state.speed = sp;
+
+  let di=near.i-state.lastIdx;
+  if(di>N/2) di-=N;
+  if(di<-N/2) di+=N;
+  if(Math.abs(sp)>5){
+    state.progress += di;
+    const rate=di/dt;
+    state.rate += (rate-state.rate)*Math.min(1, dt*3);
+  }
+  state.lastIdx=near.i;
+
+  if(state.progress>=N){ state.progress-=N; onLap(t); }
+  if(state.progress<=-N){ state.progress+=N; state.lapStart=t; }
+
+  const ww=$('#wrongway');
+  ww.style.display=(state.rate<-12 && Math.abs(sp)>60) ? 'block' : 'none';
+}
+
+function onLap(t){
+  const time=(t-state.lapStart)/1000;
+  state.lapStart=t;
+  state.laps++;
+  state.prevLap=time;
+  if(!state.sessionBest || time<state.sessionBest) state.sessionBest=time;
+}
+
+/* ---------- итоговая панель сессии (по выходу в меню) ---------- */
+function showSessionPanel(){
+  const L=save.leaders[state.def.id];
+  const best=state.sessionBest;
+  const isRec=!L.length || best<L[0].t;
+  const qualifies=L.length<5 || best<=L[L.length-1].t;
+  $('#pTime').textContent=fmt(best);
+  const sub=$('#pSub');
+  sub.className='';
+  if(isRec){
+    sub.classList.add('rec');
+    sub.textContent='НОВЫЙ РЕКОРД КЛАССА. Впиши никнейм — им будут гордиться.';
+  } else if(qualifies){
+    sub.textContent='Время вошло в топ-5 класса.';
+  } else {
+    sub.textContent='Топ-5 класса: '+L.map((e,i)=>(i+1)+'. '+e.n+' '+fmt(e.t)).join('  ·  ');
+  }
+  $('#pName').value=save.nickname||'';
+  $('#pRow').style.display = qualifies?'flex':'none';
+  $('#pLaps').textContent='ПРОЙДЕНО КРУГОВ: '+state.laps;
+  $('#panel').style.display='flex';
+}
+
+function hidePanel(){
+  $('#panel').style.display='none';
+}
+
+function toast(msg){
+  const el=$('#toast');
+  el.textContent=msg;
+  el.style.display='block';
+  clearTimeout(toast.t);
+  toast.t=setTimeout(()=>{ el.style.display='none'; },2200);
+}
+
+$('#pSave').addEventListener('click',()=>{
+  const raw=$('#pName').value.trim();
+  const L=save.leaders[state.def.id];
+  L.push({ n:(raw||'ANON').toUpperCase().slice(0,14), t:state.sessionBest });
+  L.sort((a,b)=>a.t-b.t);
+  if(L.length>5) L.length=5;
+  if(raw) save.nickname=raw;
+  persist();
+  hidePanel();
+  renderBoard();
+  toast('ЗАПИСАНО. ГОРДИСЬ.');
+});
+$('#pSkip').addEventListener('click',hidePanel);
+
+/* ---------- рендер ---------- */
+const trackPath=(function(){
+  const p=new Path2D();
+  CENTER.forEach((pt,i)=> i? p.lineTo(pt[0],pt[1]) : p.moveTo(pt[0],pt[1]));
+  p.closePath();
+  return p;
+})();
+
+function render(){
+  const W=cv.clientWidth||innerWidth, H=cv.clientHeight||innerHeight;
+  cam.x += (state.x-cam.x)*.12;
+  cam.y += (state.y-cam.y)*.12;
+  const z=zoom;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle='#101214';
+  ctx.fillRect(0,0,W,H);
+  ctx.save();
+  ctx.translate(W/2,H/2); ctx.scale(z,z); ctx.translate(-cam.x,-cam.y);
+
+  const vx0=cam.x-W/(2*z), vx1=cam.x+W/(2*z);
+  const vy0=cam.y-H/(2*z), vy1=cam.y+H/(2*z);
+
+  ctx.strokeStyle='rgba(255,255,255,.045)';
+  ctx.lineWidth=1/z;
+  ctx.beginPath();
+  for(let x=Math.floor(vx0/100)*100; x<vx1; x+=100){ ctx.moveTo(x,vy0); ctx.lineTo(x,vy1); }
+  for(let y=Math.floor(vy0/100)*100; y<vy1; y+=100){ ctx.moveTo(vx0,y); ctx.lineTo(vx1,y); }
+  ctx.stroke();
+
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.strokeStyle='#4b5058'; ctx.lineWidth=TRACK_W+12; ctx.stroke(trackPath);
+  ctx.strokeStyle='#2e3237'; ctx.lineWidth=TRACK_W; ctx.stroke(trackPath);
+  ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=2;
+  ctx.setLineDash([16,20]); ctx.stroke(trackPath); ctx.setLineDash([]);
+
+  const p0=CENTER[0], tg=TANGENT[0];
+  ctx.save();
+  ctx.translate(p0[0],p0[1]);
+  ctx.rotate(Math.atan2(tg[1],tg[0]));
+  const sq=TRACK_W/8;
+  for(let r=0;r<2;r++) for(let k=0;k<8;k++){
+    ctx.fillStyle=(r+k)%2?'#16181b':'#e8e9eb';
+    ctx.fillRect((r-1)*sq, -TRACK_W/2+k*sq, sq, sq);
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(state.x,state.y);
+  ctx.rotate(state.head);
+  paintCar(ctx,state.def);
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function updateHud(t){
+  const def=state.def;
+  const L=save.leaders[def.id];
+  const cur = state.phase==='racing' ? (t-state.lapStart)/1000 : 0;
+  let rec = L.length ? L[0].t : Infinity;
+  if(state.sessionBest) rec=Math.min(rec,state.sessionBest);
+  $('#hudTime').textContent=fmt(cur);
+  $('#hudStats').innerHTML=
+    'ПРЕДЫДУЩИЙ КРУГ <b>'+(state.prevLap?fmt(state.prevLap):'—')+'</b><br>'+
+    'РЕКОРД СЕССИИ <b>'+(state.sessionBest?fmt(state.sessionBest):'—')+'</b><br>'+
+    'РЕКОРД ТРАССЫ <b>'+(isFinite(rec)?fmt(rec):'—')+'</b>';
+  $('#hudLap').textContent='КРУГ '+state.laps;
+  const kmh=Math.abs(state.speed)/def.top*def.maxKmh;
+  $('#hudSpeed').firstChild.nodeValue=String(Math.round(kmh));
+}
+
+/* ---------- цикл ---------- */
+let lastT=performance.now();
+function frame(t){
+  requestAnimationFrame(frame);
+  const dt=Math.min(.033,(t-lastT)/1000);
+  lastT=t;
+  if(!running || !state.def) return;
+
+  const c=$('#count');
+  if(state.phase==='countdown'){
+    const e=(t-state.cd0)/1000;
+    if(e<2.4){
+      c.textContent=String(3-Math.floor(e/.8));
+    } else {
+      state.phase='racing';
+      state.lapStart=t;
+      c.textContent='ПОЕХАЛИ';
+    }
+  } else if(state.phase==='racing'){
+    const e=t-state.cd0;
+    c.textContent = e<3200 ? 'ПОЕХАЛИ' : '';
+  }
+
+  if(state.phase==='racing') physics(dt,t);
+  render();
+  updateHud(t);
+}
+
+buildMenu();
+(function(){
+  const id=new URLSearchParams(location.search).get('autostart');
+  if(id){
+    const i=CARDEFS.findIndex(d=>d.id===id);
+    if(i>=0) setTimeout(()=>{ selected=i; startGame(); }, 300);
+  }
+})();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
