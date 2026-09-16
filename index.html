@@ -202,6 +202,39 @@ function loadSave(){
 let save = loadSave();
 function persist(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 
+/* ---------- общий топ (Cloudflare Worker) ---------- */
+const SCORES_API = 'https://cringe-racing-scores.dieplswxhre.workers.dev/api/scores';
+const apiReady = () => /^https:\/\/.+\.workers\.dev\/api\/scores$/.test(SCORES_API);
+const CAR_IDS = ['f1','civic','bus'];
+const remoteLeaders = { f1:[], civic:[], bus:[] };
+const boards = { f1:[], civic:[], bus:[] };
+function refreshBoards(){
+  CAR_IDS.forEach(k=>{
+    const m = new Map();
+    (remoteLeaders[k]||[]).forEach(e=>m.set(e.n,e));
+    (save.leaders[k]||[]).forEach(e=>{ const p=m.get(e.n); if(!p||e.t<p.t) m.set(e.n,e); });
+    boards[k] = Array.from(m.values()).sort((a,b)=>a.t-b.t).slice(0,5);
+  });
+}
+function applyBoard(b){
+  if(!b) return;
+  CAR_IDS.forEach(k=>{ remoteLeaders[k]=Array.isArray(b[k])?b[k]:[]; });
+  refreshBoards();
+  if(selected>=0) renderBoard();
+}
+function fetchBoard(){
+  if(!apiReady()) return;
+  fetch(SCORES_API).then(r=>r.ok?r.json():null).then(applyBoard).catch(()=>{});
+}
+function postScore(car,name,time){
+  if(!apiReady()) return Promise.resolve(false);
+  return fetch(SCORES_API,{ method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({ car, name, time }) })
+    .then(r=>r.json().then(j=>({ok:r.ok, j})))
+    .then(({ok,j})=>{ if(ok&&j&&j.board) applyBoard(j.board); return ok; })
+    .catch(()=>false);
+}
+
 /* ---------- автомобили ---------- */
 const CARDEFS = [
   { id:'f1', name:'Формула', sub:'класс S · болид',
@@ -426,7 +459,7 @@ function drawPreview(cvs,def){
 function renderBoard(){
   if(selected<0){ boardEl.innerHTML=''; return; }
   const def=CARDEFS[selected];
-  const L=save.leaders[def.id]||[];
+  const L=boards[def.id]||[];
   let h='<div class="btitle">ТОП-5 · '+def.sub.toUpperCase()+'</div>';
   if(!L.length) h+='<div class="bempty">Пока пусто. Стань первым.</div>';
   L.forEach((e,i)=>{
@@ -518,7 +551,7 @@ function onLap(t){
 
 /* ---------- итоговая панель сессии (по выходу в меню) ---------- */
 function showSessionPanel(){
-  const L=save.leaders[state.def.id];
+  const L=boards[state.def.id];
   const best=state.sessionBest;
   const isRec=!L.length || best<L[0].t;
   const qualifies=L.length<5 || best<=L[L.length-1].t;
@@ -553,15 +586,22 @@ function toast(msg){
 
 $('#pSave').addEventListener('click',()=>{
   const raw=$('#pName').value.trim();
+  const name=(raw||'ANON').toUpperCase().replace(/\s+/g,' ').slice(0,14);
   const L=save.leaders[state.def.id];
-  L.push({ n:(raw||'ANON').toUpperCase().slice(0,14), t:state.sessionBest });
+  L.push({ n:name, t:state.sessionBest });
   L.sort((a,b)=>a.t-b.t);
   if(L.length>5) L.length=5;
   if(raw) save.nickname=raw;
   persist();
   hidePanel();
+  refreshBoards();
   renderBoard();
   toast('ЗАПИСАНО. ГОРДИСЬ.');
+  if(apiReady()){
+    postScore(state.def.id,name,state.sessionBest).then(ok=>{
+      if(!ok) toast('СЕТЬ НЕ ОТВЕТИЛА — ВРЕМЯ СОХРАНЕНО ТОЛЬКО У ТЕБЯ');
+    });
+  }
 });
 $('#pSkip').addEventListener('click',hidePanel);
 
@@ -622,7 +662,7 @@ function render(){
 
 function updateHud(t){
   const def=state.def;
-  const L=save.leaders[def.id];
+  const L=boards[def.id];
   const cur = state.phase==='racing' ? (t-state.lapStart)/1000 : 0;
   let rec = L.length ? L[0].t : Infinity;
   if(state.sessionBest) rec=Math.min(rec,state.sessionBest);
@@ -665,6 +705,8 @@ function frame(t){
 }
 
 buildMenu();
+refreshBoards();
+fetchBoard();
 (function(){
   const id=new URLSearchParams(location.search).get('autostart');
   if(id){
