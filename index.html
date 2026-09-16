@@ -195,9 +195,9 @@ const $ = s => document.querySelector(s);
 const SAVE_KEY = 'cringe_racing_v1';
 function loadSave(){
   try{ const s = JSON.parse(localStorage.getItem(SAVE_KEY));
-       if(s && s.leaders) return s;
+       if(s && s.leaders){ if(!Array.isArray(s.pending)) s.pending=[]; return s; }
   }catch(e){}
-  return { nickname:'', leaders:{ f1:[], civic:[], bus:[] } };
+  return { nickname:'', pending:[], leaders:{ f1:[], civic:[], bus:[] } };
 }
 let save = loadSave();
 function persist(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
@@ -233,6 +233,13 @@ function postScore(car,name,time){
     .then(r=>r.json().then(j=>({ok:r.ok, j})))
     .then(({ok,j})=>{ if(ok&&j&&j.board) applyBoard(j.board); return ok; })
     .catch(()=>false);
+}
+function flushPending(){
+  if(!apiReady() || !(save.pending&&save.pending.length)) return;
+  const e=save.pending[0];
+  postScore(e.car,e.n,e.t).then(ok=>{
+    if(ok){ save.pending=save.pending.slice(1); persist(); if(save.pending.length) flushPending(); }
+  });
 }
 
 /* ---------- автомобили ---------- */
@@ -592,16 +599,13 @@ $('#pSave').addEventListener('click',()=>{
   L.sort((a,b)=>a.t-b.t);
   if(L.length>5) L.length=5;
   if(raw) save.nickname=raw;
+  (save.pending=save.pending||[]).push({ car:state.def.id, n:name, t:state.sessionBest });
   persist();
   hidePanel();
   refreshBoards();
   renderBoard();
   toast('ЗАПИСАНО. ГОРДИСЬ.');
-  if(apiReady()){
-    postScore(state.def.id,name,state.sessionBest).then(ok=>{
-      if(!ok) toast('СЕТЬ НЕ ОТВЕТИЛА — ВРЕМЯ СОХРАНЕНО ТОЛЬКО У ТЕБЯ');
-    });
-  }
+  if(apiReady()) flushPending();
 });
 $('#pSkip').addEventListener('click',hidePanel);
 
@@ -707,6 +711,8 @@ function frame(t){
 buildMenu();
 refreshBoards();
 fetchBoard();
+if(apiReady()) flushPending();
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ fetchBoard(); if(apiReady()) flushPending(); } });
 (function(){
   const id=new URLSearchParams(location.search).get('autostart');
   if(id){
