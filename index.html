@@ -224,7 +224,9 @@ function applyBoard(b){
 }
 function fetchBoard(){
   if(!apiReady()) return;
-  fetch(SCORES_API).then(r=>r.ok?r.json():null).then(applyBoard).catch(()=>{});
+  fetch(SCORES_API).then(r=>r.ok?r.json():null)
+    .then(b=>{ if(!b) toast('Нет связи с сервером'); applyBoard(b); })
+    .catch(()=>toast('Нет связи с сервером'));
 }
 function postScore(car,name,time){
   if(!apiReady()) return Promise.resolve(false);
@@ -239,6 +241,7 @@ function flushPending(){
   const e=save.pending[0];
   postScore(e.car,e.n,e.t).then(ok=>{
     if(ok){ save.pending=save.pending.slice(1); persist(); if(save.pending.length) flushPending(); }
+    else toast('Нет связи с сервером. Результат уйдёт позже.');
   });
 }
 
